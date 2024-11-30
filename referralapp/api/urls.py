@@ -1,10 +1,15 @@
-from api.views import CodeVerificationView, PhoneAuthView
-from django.urls import path
+from api.views import CodeVerificationView, PhoneAuthView, UserViewSet
+from django.urls import include, path
+from rest_framework.routers import DefaultRouter
 
 app_name = "api"
 
+router = DefaultRouter()
+router.register("users", UserViewSet, basename="users")
+
 
 urlpatterns = [
+    path("", include(router.urls)),
     path("auth/phone/", PhoneAuthView.as_view(), name="phone_auth"),
     path("auth/verify/", CodeVerificationView.as_view(), name="code_verify"),
 ]
