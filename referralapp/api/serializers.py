@@ -46,6 +46,7 @@ class UserSerializer(serializers.ModelSerializer):
     inviters = serializers.SlugRelatedField(
         slug_field="phone_number", many=True, read_only=True
     )
+    active_invite_code = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -55,6 +56,11 @@ class UserSerializer(serializers.ModelSerializer):
             "username",
             "first_name",
             "last_name",
+            "active_invite_code",
             "invite_code",
             "inviters",
         )
+
+    def get_active_invite_code(self, obj):
+        """Возвращает активированный инвайт-код или None."""
+        return obj.inviter.invite_code if obj.inviter else None
