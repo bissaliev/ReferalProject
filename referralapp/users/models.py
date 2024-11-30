@@ -1,6 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from users.utils import generate_confirm_code
+from users.utils import generate_confirm_code, generate_invite_code
 from users.validators import validate_phone_number
 
 
@@ -40,8 +40,19 @@ class User(AbstractUser):
     def __str__(self):
         return self.phone_number
 
-    def generate_confirmation_code(self):
+    def generate_confirmation_code(self) -> str:
+        """Метод генерирует 4-х значный код подтверждения."""
         new_code = generate_confirm_code()
         self.confirmation_code = new_code
         self.save(update_fields=["confirmation_code"])
         return new_code
+
+    def _generate_invite_code(self) -> str:
+        """Метод генерирует 6-х значный инвайт-код."""
+        return generate_invite_code(6)
+
+    def save(self, *args, **kwargs):
+        if not self.invite_code:
+            invite_code = self._generate_invite_code()
+            self.invite_code = invite_code
+        super().save(*args, **kwargs)
