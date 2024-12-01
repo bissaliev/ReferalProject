@@ -163,7 +163,7 @@ class UserViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
 
     @extend_schema(operation_id="Профиль пользователя")
     @action(
-        methods=["GET", "PATCH", "PUT"],
+        methods=["GET", "PATCH"],
         detail=False,
         permission_classes=(IsAuthenticated,),
     )
