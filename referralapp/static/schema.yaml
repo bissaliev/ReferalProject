@@ -1,0 +1,409 @@
+openapi: 3.0.3
+info:
+  title: ReferralProject
+  version: 0.0.1
+paths:
+  /api/v1/auth/phone/:
+    post:
+      operationId: Вход или регистрация пользователя.
+      description: Пользователь указывает номер телефона на который будет отправлен
+        код верификации.
+      tags:
+      - Аутентификация
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PhoneRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PhoneRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PhoneRequest'
+        required: true
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DummyDetail'
+              examples:
+                Message:
+                  value:
+                    message: Код отправлен на номер +1234567890
+                  summary: message
+          description: Код успешно отправлен на указанный номер телефона.
+  /api/v1/auth/verify/:
+    post:
+      operationId: Получение токена по номеру телефона и коду верификации
+      description: Вход или регистрация пользователя. Отправляет код на указанный
+        номер телефона.
+      tags:
+      - Аутентификация
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthTokenRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AuthTokenRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AuthTokenRequest'
+        required: true
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+              examples:
+                Token:
+                  value:
+                    token: 9754d29331447ec35a23e9141c6b48ec7309d141
+                  summary: token
+          description: Успешная верификация кода. Возвращается токен пользователя.
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                Error400:
+                  value:
+                    error: Неверный код верификации.
+                  summary: error 400
+          description: Ошибки в процессе верификации. Например, неверный код или номер
+            телефона.
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                Error404:
+                  value:
+                    error: Неверный или не существующий номер телефона
+                  summary: error 404
+          description: Номер телефона не найден.
+  /api/v1/users/:
+    get:
+      operationId: Список пользователей
+      description: Представление для пользователей.
+      tags:
+      - Пользователи
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+          description: ''
+  /api/v1/users/{id}/:
+    get:
+      operationId: Получение одного пользователя
+      description: Представление для пользователей.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this пользователь.
+        required: true
+      tags:
+      - Пользователи
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/v1/users/activate-invite-code/:
+    post:
+      operationId: Активация инвайт-кода
+      description: Активация инвайт-кода пользователя.
+      tags:
+      - Активация инвайт-кода
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InviteCodeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/InviteCodeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/InviteCodeRequest'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DummyDetail'
+          description: Инвайт-код успешно активирован.
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: 'Ошибка активации инвайт-кода. Причина: уже активирован, самоприглашение,
+            или неверный код.'
+  /api/v1/users/me/:
+    get:
+      operationId: Профиль пользователя
+      description: Профиль пользователя.
+      tags:
+      - Пользователи
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    put:
+      operationId: Профиль пользователя_3
+      description: Профиль пользователя.
+      tags:
+      - Пользователи
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    patch:
+      operationId: Профиль пользователя_2
+      description: Профиль пользователя.
+      tags:
+      - Пользователи
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUserRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUserRequest'
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+components:
+  schemas:
+    AuthTokenRequest:
+      type: object
+      description: Сериализатор для получения токена по номеру телефона и коду верификации.
+      properties:
+        phone_number:
+          type: string
+          minLength: 10
+          description: Введите номер телефона длиной от 10 до 15 символов без пробелов.
+          maxLength: 15
+          pattern: ^\+?\d{10,15}$
+        confirmation_code:
+          type: string
+          minLength: 4
+          description: Введите 4-х значный код верификации.
+          maxLength: 4
+      required:
+      - confirmation_code
+      - phone_number
+    DummyDetail:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+      - message
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+      - error
+    InviteCodeRequest:
+      type: object
+      description: Сериализатор для активации инвайт-кода.
+      properties:
+        invite_code:
+          type: string
+          minLength: 6
+          description: Введите 6-х значный инвайт-код.
+          maxLength: 6
+          pattern: ^[a-zA-Z0-9]{6}$
+      required:
+      - invite_code
+    PatchedUserRequest:
+      type: object
+      description: Сериализатор пользователя.
+      properties:
+        phone_number:
+          type: string
+          minLength: 1
+          title: Номер телефона
+          maxLength: 15
+        username:
+          type: string
+          title: Имя пользователя
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          title: Адрес электронной почты
+          maxLength: 254
+        first_name:
+          type: string
+          title: Имя
+          maxLength: 150
+        last_name:
+          type: string
+          title: Фамилия
+          maxLength: 150
+    PhoneRequest:
+      type: object
+      description: Сериализатор для авторизации пользователя.
+      properties:
+        phone_number:
+          type: string
+          minLength: 10
+          description: Введите номер телефона длиной от 10 до 15 символов без пробелов.
+          maxLength: 15
+          pattern: ^\+?\d{10,15}$
+      required:
+      - phone_number
+    TokenResponse:
+      type: object
+      properties:
+        token:
+          type: string
+      required:
+      - token
+    User:
+      type: object
+      description: Сериализатор пользователя.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        phone_number:
+          type: string
+          title: Номер телефона
+          maxLength: 15
+        username:
+          type: string
+          title: Имя пользователя
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          title: Адрес электронной почты
+          maxLength: 254
+        first_name:
+          type: string
+          title: Имя
+          maxLength: 150
+        last_name:
+          type: string
+          title: Фамилия
+          maxLength: 150
+        active_invite_code:
+          type: string
+          readOnly: true
+        invite_code:
+          type: string
+          title: Пригласительный код
+          readOnly: true
+        inviters:
+          type: array
+          items:
+            type: string
+            title: Номер телефона
+          readOnly: true
+      required:
+      - active_invite_code
+      - id
+      - invite_code
+      - inviters
+      - phone_number
+    UserRequest:
+      type: object
+      description: Сериализатор пользователя.
+      properties:
+        phone_number:
+          type: string
+          minLength: 1
+          title: Номер телефона
+          maxLength: 15
+        username:
+          type: string
+          title: Имя пользователя
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          title: Адрес электронной почты
+          maxLength: 254
+        first_name:
+          type: string
+          title: Имя
+          maxLength: 150
+        last_name:
+          type: string
+          title: Фамилия
+          maxLength: 150
+      required:
+      - phone_number
+  securitySchemes:
+    tokenAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: Token-based authentication with required prefix "Token"
