@@ -1,4 +1,5 @@
 from random import choices, randint
+from string import ascii_lowercase, ascii_uppercase, digits
 
 
 def generate_confirm_code() -> str:
@@ -8,4 +9,6 @@ def generate_confirm_code() -> str:
 
 def generate_invite_code(length: int = 6) -> str:
     """Генерация инвайт-кода."""
-    return "".join(choices("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", k=length))
+    return "".join(
+        choices(ascii_lowercase + ascii_uppercase + digits, k=length)
+    )
