@@ -1,5 +1,3 @@
-import re
-
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
@@ -9,22 +7,20 @@ User = get_user_model()
 class PhoneSerializer(serializers.Serializer):
     """Сериализатор для авторизации пользователя."""
 
-    phone_number = serializers.CharField(
+    phone_number = serializers.RegexField(
+        regex=r"^\+?\d{10,15}$",
         required=True,
         min_length=10,
         max_length=15,
         help_text=(
             "Введите номер телефона длиной от 10 до 15 символов без пробелов."
         ),
+        error_messages={
+            "invalid": "Введите корректный номер телефона",
+            "min_length": "Номер телефона должен содержать минимум 10 символов.",
+            "max_length": "Номер телефона не может быть длиннее 15 символов.",
+        },
     )
-
-    def validate_phone_number(self, value):
-        """Валидация номера телефона."""
-        if not re.match(r"^\+?\d{10,15}$", value):
-            raise serializers.ValidationError(
-                "Введите корректный номер телефона."
-            )
-        return value
 
 
 class AuthTokenSerializer(PhoneSerializer):
@@ -43,18 +39,18 @@ class AuthTokenSerializer(PhoneSerializer):
 class InviteCodeSerializer(serializers.Serializer):
     """Сериализатор для активации инвайт-кода."""
 
-    invite_code = serializers.CharField(
+    invite_code = serializers.RegexField(
+        regex=r"^[a-zA-Z0-9]{6}$",
         min_length=6,
         max_length=6,
         required=True,
         help_text="Введите 6-х значный инвайт-код.",
+        error_messages={
+            "invalid": "Введите корректный инвайт-код",
+            "min_length": "Инвайт-код должен содержать 6 символов.",
+            "max_length": "Инвайт-код должен содержать 6 символов.",
+        },
     )
-
-    def validate_invite_code(self, value):
-        """Валидация инвайт-кода."""
-        if not re.match(r"^[a-zA-Z0-9]{6}$", value):
-            raise serializers.ValidationError("Некорректный инвайт код")
-        return value
 
 
 class UserSerializer(serializers.ModelSerializer):
