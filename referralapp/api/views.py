@@ -19,6 +19,7 @@ from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action
 from rest_framework.mixins import ListModelMixin, RetrieveModelMixin
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet
@@ -159,7 +160,11 @@ class UserViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
     queryset = User.objects.all()
 
     @extend_schema(operation_id="Профиль пользователя")
-    @action(methods=["GET", "PATCH", "PUT"], detail=False)
+    @action(
+        methods=["GET", "PATCH", "PUT"],
+        detail=False,
+        permission_classes=(IsAuthenticated,),
+    )
     def me(self, request):
         """Профиль пользователя."""
         if request.method == "GET":
@@ -191,7 +196,12 @@ class UserViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
         description="Активация инвайт-кода пользователя.",
         tags=["Активация инвайт-кода"],
     )
-    @action(methods=["POST"], detail=False, url_path="activate-invite-code")
+    @action(
+        methods=["POST"],
+        detail=False,
+        url_path="activate-invite-code",
+        permission_classes=(IsAuthenticated,),
+    )
     def activate_invite_code(self, request):
         """Активация инвайт-кода."""
         current_user = request.user
