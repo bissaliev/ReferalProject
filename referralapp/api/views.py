@@ -19,7 +19,7 @@ from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action
 from rest_framework.mixins import ListModelMixin, RetrieveModelMixin
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet
@@ -32,6 +32,7 @@ class PhoneAuthView(APIView):
     """Вход/регистрация по номеру телефона."""
 
     serializer_class = PhoneSerializer
+    permission_classes = [AllowAny]
 
     @extend_schema(
         operation_id="Вход или регистрация пользователя.",
@@ -75,6 +76,7 @@ class CodeVerificationView(APIView):
     """Представление верифицирует по номеру телефона и коду верификации."""
 
     serializer_class = AuthTokenSerializer
+    permission_classes = [AllowAny]
 
     @extend_schema(
         operation_id="Получение токена по номеру телефона и коду верификации",
