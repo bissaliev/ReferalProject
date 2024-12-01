@@ -1,10 +1,11 @@
 from api.serializers import (
     AuthTokenSerializer,
-    DummyDetailAndStatusSerializer,
+    DummyDetailSerializer,
+    ErrorResponseSerializer,
     InviteCodeSerializer,
     PhoneSerializer,
+    TokenResponseSerializer,
     UserSerializer,
-    ErrorResponseSerializer,
 )
 from api.utils import send_confirmation_code
 from django.contrib.auth import get_user_model
@@ -12,13 +13,15 @@ from drf_spectacular.utils import (
     OpenApiExample,
     OpenApiResponse,
     extend_schema,
+    extend_schema_view,
 )
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action
+from rest_framework.mixins import ListModelMixin, RetrieveModelMixin
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.viewsets import ModelViewSet
+from rest_framework.viewsets import GenericViewSet
 
 User = get_user_model()
 
@@ -34,7 +37,7 @@ class PhoneAuthView(APIView):
         request=PhoneSerializer,
         responses={
             200: OpenApiResponse(
-                response=DummyDetailAndStatusSerializer,
+                response=DummyDetailSerializer,
                 description="Код успешно отправлен на указанный номер телефона.",
                 examples=[
                     OpenApiExample(
@@ -77,10 +80,7 @@ class CodeVerificationView(APIView):
         request=AuthTokenSerializer,
         responses={
             200: OpenApiResponse(
-                response={
-                    "type": "object",
-                    "properties": {"token": {"type": "string"}},
-                },
+                response=TokenResponseSerializer,
                 description="Успешная верификация кода. Возвращается токен пользователя.",
                 examples=[
                     OpenApiExample(
@@ -102,10 +102,7 @@ class CodeVerificationView(APIView):
                 ],
             ),
             404: OpenApiResponse(
-                response={
-                    "type": "object",
-                    "properties": {"error": {"type": "string"}},
-                },
+                response=ErrorResponseSerializer,
                 description="Номер телефона не найден.",
                 examples=[
                     OpenApiExample(
@@ -128,10 +125,14 @@ class CodeVerificationView(APIView):
             user = User.objects.get(phone_number=phone_number)
         except User.DoesNotExist:
             return Response(
-                {"error": "Неверный или не существующий номер телефона."}
+                {"error": "Неверный или не существующий номер телефона."},
+                status=status.HTTP_404_NOT_FOUND,
             )
         if user.confirmation_code != confirmation_code:
-            return Response({"error": "Неверный код верификации."})
+            return Response(
+                {"error": "Неверный код верификации."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         token, _ = Token.objects.get_or_create(user=user)
         user.confirmation_code = None
         user.save(update_fields=["confirmation_code"])
@@ -139,12 +140,25 @@ class CodeVerificationView(APIView):
 
 
 @extend_schema(tags=["Пользователи"])
-class UserViewSet(ModelViewSet):
+@extend_schema_view(
+    list=extend_schema(
+        operation_id="Список пользователей",
+        # description="text",
+        responses={200: UserSerializer},
+    ),
+    retrieve=extend_schema(
+        operation_id="Получение одного пользователя",
+        # description="text",
+        responses={200: UserSerializer},
+    ),
+)
+class UserViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
     """Представление для пользователей."""
 
     serializer_class = UserSerializer
     queryset = User.objects.all()
 
+    @extend_schema(operation_id="Профиль пользователя")
     @action(methods=["GET", "PATCH", "PUT"], detail=False)
     def me(self, request):
         """Профиль пользователя."""
@@ -158,6 +172,25 @@ class UserViewSet(ModelViewSet):
         serializer.save()
         return Response(serializer.data)
 
+    @extend_schema(
+        operation_id="Активация инвайт-кода",
+        request=InviteCodeSerializer,
+        responses={
+            200: OpenApiResponse(
+                response=DummyDetailSerializer,
+                description="Инвайт-код успешно активирован.",
+            ),
+            400: OpenApiResponse(
+                response=ErrorResponseSerializer,
+                description=(
+                    "Ошибка активации инвайт-кода. Причина: уже активирован, "
+                    "самоприглашение, или неверный код."
+                ),
+            ),
+        },
+        description="Активация инвайт-кода пользователя.",
+        tags=["Активация инвайт-кода"],
+    )
     @action(methods=["POST"], detail=False, url_path="activate-invite-code")
     def activate_invite_code(self, request):
         """Активация инвайт-кода."""

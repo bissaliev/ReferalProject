@@ -9,7 +9,14 @@ User = get_user_model()
 class PhoneSerializer(serializers.Serializer):
     """Сериализатор для авторизации пользователя."""
 
-    phone_number = serializers.CharField(required=True)
+    phone_number = serializers.CharField(
+        required=True,
+        min_length=10,
+        max_length=15,
+        help_text=(
+            "Введите номер телефона длиной от 10 до 15 символов без пробелов."
+        ),
+    )
 
     def validate_phone_number(self, value):
         """Валидация номера телефона."""
@@ -25,13 +32,23 @@ class AuthTokenSerializer(PhoneSerializer):
     Сериализатор для получения токена по номеру телефона и коду верификации.
     """
 
-    confirmation_code = serializers.CharField(max_length=4, required=True)
+    confirmation_code = serializers.CharField(
+        min_length=4,
+        max_length=4,
+        required=True,
+        help_text="Введите 4-х значный код верификации.",
+    )
 
 
 class InviteCodeSerializer(serializers.Serializer):
     """Сериализатор для активации инвайт-кода."""
 
-    invite_code = serializers.CharField(required=True)
+    invite_code = serializers.CharField(
+        min_length=6,
+        max_length=6,
+        required=True,
+        help_text="Введите 6-х значный инвайт-код.",
+    )
 
     def validate_invite_code(self, value):
         """Валидация инвайт-кода."""
@@ -47,6 +64,7 @@ class UserSerializer(serializers.ModelSerializer):
         slug_field="phone_number", many=True, read_only=True
     )
     active_invite_code = serializers.SerializerMethodField()
+    invite_code = serializers.ReadOnlyField()
 
     class Meta:
         model = User
@@ -54,6 +72,7 @@ class UserSerializer(serializers.ModelSerializer):
             "id",
             "phone_number",
             "username",
+            "email",
             "first_name",
             "last_name",
             "active_invite_code",
@@ -64,3 +83,20 @@ class UserSerializer(serializers.ModelSerializer):
     def get_active_invite_code(self, obj):
         """Возвращает активированный инвайт-код или None."""
         return obj.inviter.invite_code if obj.inviter else None
+
+
+class DummyDetailSerializer(serializers.Serializer):
+    message = serializers.CharField()
+
+
+class DummyDetailAndStatusSerializer(serializers.Serializer):
+    status = serializers.IntegerField()
+    details = serializers.CharField()
+
+
+class ErrorResponseSerializer(serializers.Serializer):
+    error = serializers.CharField()
+
+
+class TokenResponseSerializer(serializers.Serializer):
+    token = serializers.CharField()
