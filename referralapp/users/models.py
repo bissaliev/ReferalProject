@@ -1,7 +1,7 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.exceptions import ValidationError
 from django.db import models
-from users.utils import generate_confirm_code
+from users.utils import generate_confirm_code, generate_invite_code
 from users.validators import validate_invite_code, validate_phone_number
 
 
@@ -58,6 +58,23 @@ class User(AbstractUser):
         self.confirmation_code = new_code
         self.save(update_fields=["confirmation_code"])
         return new_code
+
+
+class InviteCode(models.Model):
+    """Инвайт код."""
+
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE, related_name="invite_code"
+    )
+
+    code = models.CharField(
+        blank=True,
+        max_length=6,
+        unique=True,
+        verbose_name="пригласительный код",
+        default=generate_invite_code,
+        validators=[validate_invite_code],
+    )
 
 
 class Referral(models.Model):
