@@ -30,11 +30,13 @@
 -   При регистрации каждому пользователю автоматически присваивается уникальный инвайт-код.
 -   В профиле пользователя доступен список всех приглашённых пользователей, которые активировали его инвайт-код.
 
-### Документация API:
+### Документация API
 
--   Полная спецификация API доступна по адресу /docs/.
+[swagger](http://127.0.0.1:8000/swagger/)
 
-Установка на локальный сервер
+[redoc](http://127.0.0.1:8000/redoc/)
+
+### Установка и запуск
 
 Клонируйте репозиторий:
 
@@ -42,6 +44,8 @@
 git clone git@github.com:bissaliev/ReferralProject.git
 cd ReferralProject/
 ```
+
+#### Запуск на локальным сервере
 
 Установите и активируйте виртуальное окружение:
 
@@ -87,22 +91,26 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
-## Эндпоинты
+#### Запуск с помощью DOCKER:
 
-[Получить код верификации](http://127.0.0.1:8000/api/v1/auth/phone/)
+-   Из корневой директории выполните запуск docker-compose
 
-[Подтверждение авторизации](http://127.0.0.1:8000/api/v1/auth/verify/)
+```bash
+docker compose up --build
+```
 
-[Профиль пользователя](http://127.0.0.1:8000/api/v1/users/me/)
+-   Выполните миграции
 
-[Активация инвайт-кода](http://127.0.0.1:8000/api/v1/users/activate-invite-code/)
+```bash
+docker compose exec web python manage.py migrate
+```
 
-## Эндпоинты на ресурсе
+-   Создайте суперпользователя
 
-[Получить код верификации](https://bissalievoleg.pythonanywhere.com/api/v1/auth/phone/)
+```bash
+docker compose exec web python manage.py createsuperuser
+```
 
-[Подтверждение авторизации](https://bissalievoleg.pythonanywhere.com/api/v1/auth/verify/)
+### Разработчик
 
-[Профиль пользователя](https://bissalievoleg.pythonanywhere.com/api/v1/users/me/)
-
-[Активация инвайт-кода](https://bissalievoleg.pythonanywhere.com/api/v1/users/activate-invite-code/)
+[Биссалиев Олег](https://github.com/bissaliev)
