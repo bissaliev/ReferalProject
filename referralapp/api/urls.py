@@ -1,6 +1,7 @@
-from api.views import CodeVerificationView, PhoneAuthView, UserViewSet
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
+
+from .views import CodeVerificationView, PhoneAuthView, UserViewSet
 
 app_name = "api"
 
