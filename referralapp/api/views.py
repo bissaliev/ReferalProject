@@ -23,6 +23,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet
+from users.models import Referral
 
 User = get_user_model()
 
@@ -207,7 +208,7 @@ class UserViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
     def activate_invite_code(self, request):
         """Активация инвайт-кода."""
         current_user = request.user
-        if current_user.inviter:
+        if Referral.objects.filter(invitee=current_user).exists():
             return Response(
                 {"error": "Инвайт код уже активирован"},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -220,12 +221,11 @@ class UserViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
                 {"error": "Вы не можете пригласить самого себя."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        inviter = User.objects.filter(invite_code=invite_code).first()
+        inviter = User.objects.filter(invite_code__code=invite_code).first()
         if not inviter:
             return Response(
                 {"error": "Указанный инвайт-код не существует."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        current_user.inviter = inviter
-        current_user.save(update_fields=["inviter"])
+        Referral.objects.create(inviter=inviter, invitee=current_user)
         return Response({"message": "Инвайт-код успешно активирован."})

@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
+from users.models import Referral
 
 User = get_user_model()
 
@@ -53,32 +54,34 @@ class InviteCodeSerializer(serializers.Serializer):
     )
 
 
+class ReferralSerializer(serializers.ModelSerializer):
+    """Номера приглашенных пользователей."""
+
+    phone_number = serializers.ReadOnlyField(source="invitee.phone_number")
+
+    class Meta:
+        model = Referral
+        fields = ("phone_number",)
+
+
 class UserSerializer(serializers.ModelSerializer):
     """Сериализатор пользователя."""
 
-    inviters = serializers.SlugRelatedField(
-        slug_field="phone_number", many=True, read_only=True
-    )
-    active_invite_code = serializers.SerializerMethodField()
-    invite_code = serializers.ReadOnlyField()
+    inviters = ReferralSerializer(source="invited_users", many=True)
+    invite_code = serializers.ReadOnlyField(source="invite_code.code")
 
     class Meta:
         model = User
         fields = (
             "id",
             "phone_number",
-            "username",
             "email",
             "first_name",
             "last_name",
-            "active_invite_code",
+            # "active_invite_code",
             "invite_code",
             "inviters",
         )
-
-    def get_active_invite_code(self, obj):
-        """Возвращает активированный инвайт-код или None."""
-        return obj.inviter.invite_code if obj.inviter else None
 
 
 class DummyDetailSerializer(serializers.Serializer):
