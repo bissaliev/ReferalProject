@@ -1,6 +1,7 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.exceptions import ValidationError
 from django.db import models
+
 from users.utils import generate_invite_code
 from users.validators import validate_invite_code, validate_phone_number
 
