@@ -1,7 +1,8 @@
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
 from django.db import models
 from users.utils import generate_confirm_code, generate_invite_code
-from users.validators import validate_phone_number
+from users.validators import validate_invite_code, validate_phone_number
 
 
 class User(AbstractUser):
@@ -26,15 +27,10 @@ class User(AbstractUser):
         verbose_name="код авторизации",
     )
     invite_code = models.CharField(
-        max_length=6, blank=True, verbose_name="пригласительный код"
-    )
-    inviter = models.ForeignKey(
-        "self",
-        on_delete=models.SET_NULL,
-        null=True,
         blank=True,
-        related_name="inviters",
-        verbose_name="инвайтер",
+        max_length=6,
+        verbose_name="пригласительный код",
+        validators=[validate_invite_code],
     )
     REQUIRED_FIELDS = ["phone_number"]
 
@@ -56,4 +52,43 @@ class User(AbstractUser):
         if not self.invite_code:
             invite_code = self._generate_invite_code()
             self.invite_code = invite_code
+        super().save(*args, **kwargs)
+
+
+class Referral(models.Model):
+    """Реферальная система."""
+
+    inviter = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        related_name="invited_users",
+        blank=True,
+        null=True,
+        verbose_name="пригласивший пользователь",
+    )
+    invitee = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name="referral_info",
+        verbose_name="приглашенный пользователь",
+    )
+    activated_invite_code = models.CharField(
+        "активированный инвайт-код",
+        max_length=6,
+        blank=True,
+        validators=[validate_invite_code],
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True, verbose_name="Дата активации"
+    )
+
+    def __str__(self):
+        return f"{self.inviter} пригласил {self.invitee}"
+
+    def save(self, *args, **kwargs):
+        if self.invitee == self.inviter:
+            raise ValidationError(
+                "Пользователь не может пригласить самого себя."
+            )
+        self.activated_invite_code = self.inviter.invite_code
         super().save(*args, **kwargs)
