@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from users.models import Referral
+from users.validators import validate_invite_code, validate_phone_number
 
 User = get_user_model()
 
@@ -8,11 +9,8 @@ User = get_user_model()
 class PhoneSerializer(serializers.Serializer):
     """Сериализатор для авторизации пользователя."""
 
-    phone_number = serializers.RegexField(
-        regex=r"^\+?\d{10,15}$",
+    phone_number = serializers.CharField(
         required=True,
-        min_length=10,
-        max_length=15,
         help_text=(
             "Введите номер телефона длиной от 10 до 15 символов без пробелов."
         ),
@@ -21,6 +19,8 @@ class PhoneSerializer(serializers.Serializer):
             "min_length": "Номер телефона должен содержать минимум 10 символов.",
             "max_length": "Номер телефона не может быть длиннее 15 символов.",
         },
+        label="Номер телефона",
+        validators=[validate_phone_number],
     )
 
 
@@ -34,30 +34,30 @@ class AuthTokenSerializer(PhoneSerializer):
         max_length=4,
         required=True,
         help_text="Введите 4-х значный код верификации.",
+        label="Код верификации",
     )
 
 
 class InviteCodeSerializer(serializers.Serializer):
     """Сериализатор для активации инвайт-кода."""
 
-    invite_code = serializers.RegexField(
-        regex=r"^[a-zA-Z0-9]{6}$",
-        min_length=6,
-        max_length=6,
+    invite_code = serializers.CharField(
         required=True,
         help_text="Введите 6-х значный инвайт-код.",
-        error_messages={
-            "invalid": "Введите корректный инвайт-код",
-            "min_length": "Инвайт-код должен содержать 6 символов.",
-            "max_length": "Инвайт-код должен содержать 6 символов.",
-        },
+        label="Инвайт код",
+        validators=[validate_invite_code],
     )
 
 
 class ReferralSerializer(serializers.ModelSerializer):
-    """Номера приглашенных пользователей."""
+    """
+    Вложенный сериализатор для отображения номеров телефонов
+    приглашенных пользователей.
+    """
 
-    phone_number = serializers.ReadOnlyField(source="invitee.phone_number")
+    phone_number = serializers.ReadOnlyField(
+        source="invitee.phone_number", label="номер телефона"
+    )
 
     class Meta:
         model = Referral
@@ -67,8 +67,19 @@ class ReferralSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     """Сериализатор пользователя."""
 
-    inviters = ReferralSerializer(source="invited_users", many=True)
-    invite_code = serializers.ReadOnlyField(source="invite_code.code")
+    inviters = ReferralSerializer(
+        source="invited_users",
+        many=True,
+        read_only=True,
+        label="Приглашенные пользователи",
+    )
+    invite_code = serializers.ReadOnlyField(
+        source="invite_code.code", label="инвайт-код пользователя"
+    )
+    activated_invite_code = serializers.ReadOnlyField(
+        source="referral_info.activated_invite_code",
+        label="Активированный инвайт-код",
+    )
 
     class Meta:
         model = User
@@ -78,10 +89,13 @@ class UserSerializer(serializers.ModelSerializer):
             "email",
             "first_name",
             "last_name",
-            # "active_invite_code",
+            "activated_invite_code",
             "invite_code",
             "inviters",
         )
+
+
+# Сериализаторы для документации
 
 
 class DummyDetailSerializer(serializers.Serializer):

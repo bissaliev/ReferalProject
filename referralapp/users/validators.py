@@ -3,7 +3,7 @@ import re
 from django.core.exceptions import ValidationError
 
 
-def validate_phone_number(value):
+def validate_phone_number(value) -> None:
     """Валидатор для номера телефона."""
     if not re.match(r"^\+?\d{10,15}$", value):
         raise ValidationError(
@@ -12,7 +12,7 @@ def validate_phone_number(value):
         )
 
 
-def validate_invite_code(value: str):
+def validate_invite_code(value: str) -> None:
     """Валидатор для инвайт-кода."""
     if len(value) != 6:
         raise ValidationError(

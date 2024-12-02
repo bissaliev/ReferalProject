@@ -6,6 +6,8 @@ from users.validators import validate_invite_code, validate_phone_number
 
 
 class UserManager(BaseUserManager):
+    """Кастомный менеджер пользователя."""
+
     def create_user(self, phone_number, password, **extra_fields):
         if not phone_number:
             raise ValueError(
@@ -63,6 +65,9 @@ class InviteCode(models.Model):
         validators=[validate_invite_code],
     )
 
+    def __str__(self):
+        return f"Пользователь {self.user} | Инвайт-код: {self.code}"
+
 
 class Referral(models.Model):
     """Реферальная система."""
@@ -95,9 +100,12 @@ class Referral(models.Model):
         return f"{self.inviter} пригласил {self.invitee}"
 
     def save(self, *args, **kwargs):
+        """
+        Проверка на самоприглашение и сохранение инвайт-кода приглашающего.
+        """
         if self.invitee == self.inviter:
             raise ValidationError(
                 "Пользователь не может пригласить самого себя."
             )
-        self.activated_invite_code = self.inviter.invite_code
+        self.activated_invite_code = self.inviter.invite_code.code
         super().save(*args, **kwargs)
