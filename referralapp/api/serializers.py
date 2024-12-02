@@ -95,6 +95,53 @@ class UserSerializer(serializers.ModelSerializer):
         )
 
 
+class ReferralCreateSerializer(serializers.ModelSerializer):
+    """Сериализатор для активации инвайт-кода."""
+
+    invite_code = serializers.CharField(
+        required=True,
+        help_text="Введите 6-х значный инвайт-код.",
+        label="Инвайт код",
+        source="activated_invite_code",
+        validators=[validate_invite_code],
+    )
+    invitee = serializers.HiddenField(default=serializers.CurrentUserDefault())
+
+    class Meta:
+        model = Referral
+        fields = ("invite_code", "invitee")
+
+    def validate(self, attrs):
+        invitee = self.context["request"].user
+        invite_code = attrs.get("activated_invite_code")
+        inviter = (
+            User.objects.filter(invite_code__code=invite_code)
+            .select_related("invite_code")
+            .first()
+        )
+        if Referral.objects.filter(invitee=invitee).exists():
+            raise serializers.ValidationError(
+                {"invite_code": "Инвайт код уже активирован."}
+            )
+        if invitee == inviter:
+            raise serializers.ValidationError(
+                {
+                    "invite_code": "Пользователь не может пригласить самого себя."
+                }
+            )
+        if not inviter:
+            raise serializers.ValidationError(
+                {"invite_code": "Указанный инвайт-код не существует."}
+            )
+        attrs["inviter"] = inviter
+        return super().validate(attrs)
+
+    def create(self, validated_data):
+        invitee = validated_data.get("invitee")
+        inviter = validated_data.get("inviter")
+        return Referral.objects.create(inviter=inviter, invitee=invitee)
+
+
 # Сериализаторы для документации
 
 

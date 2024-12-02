@@ -1,13 +1,15 @@
+from api.permissions import IsAdminOrReadOnly
 from api.serializers import (
     AuthTokenSerializer,
     DummyDetailSerializer,
     ErrorResponseSerializer,
     InviteCodeSerializer,
     PhoneSerializer,
+    ReferralCreateSerializer,
     TokenResponseSerializer,
     UserSerializer,
 )
-from api.utils import delete_cache, send_confirmation_code, verify_confirm_code
+from api.utils import send_confirmation_code, verify_confirm_code
 from django.contrib.auth import get_user_model
 from drf_spectacular.utils import (
     OpenApiExample,
@@ -18,12 +20,15 @@ from drf_spectacular.utils import (
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action
-from rest_framework.mixins import ListModelMixin, RetrieveModelMixin
+from rest_framework.mixins import (
+    DestroyModelMixin,
+    ListModelMixin,
+    RetrieveModelMixin,
+)
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet
-from users.models import Referral
 
 User = get_user_model()
 
@@ -62,9 +67,11 @@ class PhoneAuthView(APIView):
         serializer.is_valid(raise_exception=True)
         phone_number = serializer.validated_data.get("phone_number")
         # отправка кода верификации пользователю
-        send_confirmation_code(phone_number)
+        # TODO: код подтверждения отправляем клиенту для
+        # тестирования верификации, нужно убрать из кода
+        new_code = send_confirmation_code(phone_number)
         return Response(
-            {"message": f"Код отправлен на номер {phone_number}"},
+            {"message": f"Код {new_code} отправлен на номер {phone_number}"},
             status=status.HTTP_200_OK,
         )
 
@@ -128,7 +135,6 @@ class CodeVerificationView(APIView):
                 {"error": "Неверный код верификации."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        delete_cache(phone_number)
         token, _ = Token.objects.get_or_create(user=user)
         return Response({"token": token.key})
 
@@ -137,24 +143,27 @@ class CodeVerificationView(APIView):
 @extend_schema_view(
     list=extend_schema(
         operation_id="Список пользователей",
-        # description="text",
         responses={200: UserSerializer},
     ),
     retrieve=extend_schema(
         operation_id="Получение одного пользователя",
-        # description="text",
         responses={200: UserSerializer},
     ),
 )
-class UserViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
+class UserViewSet(
+    ListModelMixin, RetrieveModelMixin, DestroyModelMixin, GenericViewSet
+):
     """Представление для пользователей."""
 
     serializer_class = UserSerializer
-    queryset = User.objects.all()
+    queryset = User.objects.select_related("invite_code").prefetch_related(
+        "invited_users"
+    )
+    permission_classes = [IsAdminOrReadOnly]
 
     @extend_schema(operation_id="Профиль пользователя")
     @action(
-        methods=["GET", "PATCH"],
+        methods=["GET", "PATCH", "DELETE"],
         detail=False,
         permission_classes=(IsAuthenticated,),
     )
@@ -166,6 +175,12 @@ class UserViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
         serializer = self.serializer_class(
             request.user, data=request.data, partial=True
         )
+        if request.method == "DELETE":
+            User.objects.filter(id=request.user.id).delete()
+            return Response(
+                {"message": "Профиль удален."},
+                status=status.HTTP_204_NO_CONTENT,
+            )
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
@@ -197,25 +212,14 @@ class UserViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
     )
     def activate_invite_code(self, request):
         """Активация инвайт-кода."""
-        current_user = request.user
-        if Referral.objects.filter(invitee=current_user).exists():
+        serializer = ReferralCreateSerializer(
+            data=request.data,
+            context={"request": request},
+        )
+        if serializer.is_valid():
+            serializer.save(invitee=request.user)
             return Response(
-                {"error": "Инвайт код уже активирован"},
-                status=status.HTTP_400_BAD_REQUEST,
+                {"message": "Инвайт-код успешно активирован."},
+                status=status.HTTP_201_CREATED,
             )
-        serializer = InviteCodeSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        invite_code = serializer.validated_data.get("invite_code")
-        if invite_code == current_user.invite_code:
-            return Response(
-                {"error": "Вы не можете пригласить самого себя."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        inviter = User.objects.filter(invite_code__code=invite_code).first()
-        if not inviter:
-            return Response(
-                {"error": "Указанный инвайт-код не существует."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        Referral.objects.create(inviter=inviter, invitee=current_user)
-        return Response({"message": "Инвайт-код успешно активирован."})
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
