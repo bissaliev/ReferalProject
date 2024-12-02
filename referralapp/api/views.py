@@ -7,7 +7,7 @@ from api.serializers import (
     TokenResponseSerializer,
     UserSerializer,
 )
-from api.utils import send_confirmation_code
+from api.utils import delete_cache, send_confirmation_code, verify_confirm_code
 from django.contrib.auth import get_user_model
 from drf_spectacular.utils import (
     OpenApiExample,
@@ -61,11 +61,8 @@ class PhoneAuthView(APIView):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         phone_number = serializer.validated_data.get("phone_number")
-        user, _ = User.objects.get_or_create(phone_number=phone_number)
-        # генерация кода верификации
-        new_code = user.generate_confirmation_code()
         # отправка кода верификации пользователю
-        send_confirmation_code(phone_number, new_code)
+        send_confirmation_code(phone_number)
         return Response(
             {"message": f"Код отправлен на номер {phone_number}"},
             status=status.HTTP_200_OK,
@@ -125,21 +122,14 @@ class CodeVerificationView(APIView):
         serializer.is_valid(raise_exception=True)
         phone_number = serializer.validated_data.get("phone_number")
         confirmation_code = serializer.validated_data.get("confirmation_code")
-        try:
-            user = User.objects.get(phone_number=phone_number)
-        except User.DoesNotExist:
-            return Response(
-                {"error": "Неверный или не существующий номер телефона."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-        if user.confirmation_code != confirmation_code:
+        user, _ = User.objects.get_or_create(phone_number=phone_number)
+        if not verify_confirm_code(phone_number, confirmation_code):
             return Response(
                 {"error": "Неверный код верификации."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        delete_cache(phone_number)
         token, _ = Token.objects.get_or_create(user=user)
-        user.confirmation_code = None
-        user.save(update_fields=["confirmation_code"])
         return Response({"token": token.key})
 
 
