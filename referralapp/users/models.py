@@ -1,7 +1,7 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.exceptions import ValidationError
 from django.db import models
-from users.utils import generate_confirm_code, generate_invite_code
+from users.utils import generate_invite_code
 from users.validators import validate_invite_code, validate_phone_number
 
 
@@ -38,12 +38,6 @@ class User(AbstractUser):
         verbose_name="номер телефона",
         max_length=15,
     )
-    confirmation_code = models.CharField(
-        max_length=4,
-        blank=True,
-        null=True,
-        verbose_name="код авторизации",
-    )
     USERNAME_FIELD = "phone_number"
     REQUIRED_FIELDS = []
 
@@ -51,13 +45,6 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.phone_number
-
-    def generate_confirmation_code(self) -> str:
-        """Метод генерирует 4-х значный код подтверждения."""
-        new_code = generate_confirm_code()
-        self.confirmation_code = new_code
-        self.save(update_fields=["confirmation_code"])
-        return new_code
 
 
 class InviteCode(models.Model):
