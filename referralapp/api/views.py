@@ -156,9 +156,9 @@ class UserViewSet(
     """Представление для пользователей."""
 
     serializer_class = UserSerializer
-    queryset = User.objects.select_related("invite_code").prefetch_related(
-        "invited_users"
-    )
+    queryset = User.objects.select_related(
+        "invite_code", "referral_info"
+    ).prefetch_related("invited_users")
     permission_classes = [IsAdminOrReadOnly]
 
     @extend_schema(operation_id="Профиль пользователя")
@@ -169,14 +169,15 @@ class UserViewSet(
     )
     def me(self, request):
         """Профиль пользователя."""
+        current_user = self.get_queryset().filter(id=request.user.id).first()
         if request.method == "GET":
-            serializer = self.serializer_class(request.user)
+            serializer = self.serializer_class(current_user)
             return Response(serializer.data)
         serializer = self.serializer_class(
-            request.user, data=request.data, partial=True
+            current_user, data=request.data, partial=True
         )
         if request.method == "DELETE":
-            User.objects.filter(id=request.user.id).delete()
+            current_user.delete()
             return Response(
                 {"message": "Профиль удален."},
                 status=status.HTTP_204_NO_CONTENT,
