@@ -1,24 +1,42 @@
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.exceptions import ValidationError
 from django.db import models
-from users.utils import generate_confirm_code, generate_invite_code
+from users.utils import generate_confirm_code
 from users.validators import validate_invite_code, validate_phone_number
+
+
+class UserManager(BaseUserManager):
+    def create_user(self, phone_number, password, **extra_fields):
+        if not phone_number:
+            raise ValueError(
+                "У пользователя должен быть указан номер телефона."
+            )
+        extra_fields.setdefault("is_active", True)
+        user = self.model(phone_number=phone_number, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+
+    def create_superuser(self, phone_number, password, **extra_fields):
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+        if extra_fields.get("is_staff") is not True:
+            raise ValueError("Суперпользователь должен иметь is_staff=True.")
+        if extra_fields.get("is_superuser") is not True:
+            raise ValueError(
+                "Суперпользователь должен иметь is_superuser=True."
+            )
+        return self.create_user(phone_number, password, **extra_fields)
 
 
 class User(AbstractUser):
     """Пользователи."""
 
+    username = None
     phone_number = models.CharField(
         unique=True,
         validators=[validate_phone_number],
         verbose_name="номер телефона",
         max_length=15,
-    )
-    username = models.CharField(
-        max_length=150,
-        unique=True,
-        blank=True,
-        verbose_name="имя пользователя",
     )
     confirmation_code = models.CharField(
         max_length=4,
@@ -26,13 +44,10 @@ class User(AbstractUser):
         null=True,
         verbose_name="код авторизации",
     )
-    invite_code = models.CharField(
-        blank=True,
-        max_length=6,
-        verbose_name="пригласительный код",
-        validators=[validate_invite_code],
-    )
-    REQUIRED_FIELDS = ["phone_number"]
+    USERNAME_FIELD = "phone_number"
+    REQUIRED_FIELDS = []
+
+    objects = UserManager()
 
     def __str__(self):
         return self.phone_number
@@ -43,16 +58,6 @@ class User(AbstractUser):
         self.confirmation_code = new_code
         self.save(update_fields=["confirmation_code"])
         return new_code
-
-    def _generate_invite_code(self) -> str:
-        """Метод генерирует 6-х значный инвайт-код."""
-        return generate_invite_code(6)
-
-    def save(self, *args, **kwargs):
-        if not self.invite_code:
-            invite_code = self._generate_invite_code()
-            self.invite_code = invite_code
-        super().save(*args, **kwargs)
 
 
 class Referral(models.Model):
