@@ -1,15 +1,3 @@
-from api.permissions import IsAdminOrReadOnly
-from api.serializers import (
-    AuthTokenSerializer,
-    DummyDetailSerializer,
-    ErrorResponseSerializer,
-    InviteCodeSerializer,
-    PhoneSerializer,
-    ReferralCreateSerializer,
-    TokenResponseSerializer,
-    UserSerializer,
-)
-from api.utils import send_confirmation_code, verify_confirm_code
 from django.contrib.auth import get_user_model
 from drf_spectacular.utils import (
     OpenApiExample,
@@ -30,12 +18,25 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet
 
+from .permissions import IsAdminOrReadOnly
+from .serializers import (
+    AuthTokenSerializer,
+    DummyDetailSerializer,
+    ErrorResponseSerializer,
+    InviteCodeSerializer,
+    PhoneSerializer,
+    ReferralCreateSerializer,
+    TokenResponseSerializer,
+    UserSerializer,
+)
+from .utils import send_confirmation_code, verify_confirm_code
+
 User = get_user_model()
 
 
 @extend_schema(tags=["Аутентификация"])
 class PhoneAuthView(APIView):
-    """Вход/регистрация по номеру телефона."""
+    """Вход/регистрация по номеру телефона. Запрос кода подтверждения."""
 
     serializer_class = PhoneSerializer
     permission_classes = [AllowAny]
@@ -78,7 +79,7 @@ class PhoneAuthView(APIView):
 
 @extend_schema(tags=["Аутентификация"])
 class CodeVerificationView(APIView):
-    """Представление верифицирует по номеру телефона и коду верификации."""
+    """Получение токена по номеру телефона и коду верификации."""
 
     serializer_class = AuthTokenSerializer
     permission_classes = [AllowAny]
