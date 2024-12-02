@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
+
 from users.models import Referral
 from users.validators import validate_invite_code, validate_phone_number
 
