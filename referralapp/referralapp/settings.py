@@ -18,14 +18,14 @@ ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS").split(" ")
 # Application definition
 
 INSTALLED_APPS = [
+    "users.apps.UsersConfig",
+    "api.apps.ApiConfig",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "users.apps.UsersConfig",
-    "api.apps.ApiConfig",
     "rest_framework",
     "rest_framework.authtoken",
     "drf_spectacular",
@@ -63,7 +63,9 @@ WSGI_APPLICATION = "referralapp.wsgi.application"
 
 
 # Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
+# Если переменная окружения равно postgres,
+# то проект будет работать с PostgreSQL.
+# Иначе со SQLite
 
 if os.getenv("DATABASE") == "postgres":
     DATABASES = {
@@ -130,6 +132,9 @@ STATIC_ROOT = "staticfiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTH_USER_MODEL = "users.User"
+
+# Ключ кеша для кода верификации
+CACHE_KEY_OF_CONFIRM_CODE = "confirm_code"
 
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
